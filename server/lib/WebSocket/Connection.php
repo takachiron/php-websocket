@@ -70,12 +70,13 @@ class Connection
             $line = chop($line);
             if(preg_match('/\A(\S+): (.*)\z/', $line, $matches))
 			{
-                $headers[$matches[1]] = $matches[2];
+                // RFC 2616 4-2 : Field names are case-insensitive.
+                $headers[strtoupper($matches[1])] = $matches[2];
             }
         }
 		
 		// check for supported websocket version:		
-		if(!isset($headers['Sec-WebSocket-Version']) || $headers['Sec-WebSocket-Version'] < 6)
+		if(!isset($headers['SEC-WEBSOCKET-VERSION']) || $headers['SEC-WEBSOCKET-VERSION'] < 6)
 		{
 			$this->log('Unsupported websocket version.');
 			$this->sendHttpResponse(501);
@@ -87,8 +88,8 @@ class Connection
 		// check origin:
 		if($this->server->getCheckOrigin() === true)
 		{
-			$origin = (isset($headers['Sec-WebSocket-Origin'])) ? $headers['Sec-WebSocket-Origin'] : false;
-			$origin = (isset($headers['Origin'])) ? $headers['Origin'] : $origin;
+			$origin = (isset($headers['SEC-WEBSOCKET-ORIGIN'])) ? $headers['SEC-WEBSOCKET-ORIGIN'] : false;
+			$origin = (isset($headers['ORIGIN'])) ? $headers['ORIGIN'] : $origin;
 			if($origin === false)
 			{
 				$this->log('No origin provided.');
@@ -118,13 +119,13 @@ class Connection
 		}		
 		
 		// do handyshake: (hybi-10)
-		$secKey = $headers['Sec-WebSocket-Key'];
+		$secKey = $headers['SEC-WEBSOCKET-KEY'];
 		$secAccept = base64_encode(pack('H*', sha1($secKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
 		$response = "HTTP/1.1 101 Switching Protocols\r\n";
 		$response.= "Upgrade: websocket\r\n";
 		$response.= "Connection: Upgrade\r\n";
 		$response.= "Sec-WebSocket-Accept: " . $secAccept . "\r\n";
-		if(isset($headers['Sec-WebSocket-Protocol']) && !empty($headers['Sec-WebSocket-Protocol']))
+		if(isset($headers['SEC-WEBSOCKET-PROTOCOL']) && !empty($headers['SEC-WEBSOCKET-PROTOCOL']))
 		{
 			$response.= "Sec-WebSocket-Protocol: " . substr($path, 1) . "\r\n";
 		}
